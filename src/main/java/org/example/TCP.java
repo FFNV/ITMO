@@ -1,34 +1,41 @@
 package org.example;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TCP {
-
     public static void main(String[] args) {
         String ip = "109.167.241.225";
         int port = 6340;
 
         try {
             Socket socket = new Socket(ip, port);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            InputStream inputStream = socket.getInputStream();
 
-            StringBuilder result = new StringBuilder();
-            char[] buffer = new char[65536];
+            byte[] buffer = new byte[65536];
+            byte[] result = new byte[0];
 
             while (true) {
-                int n = reader.read(buffer);
+                int n = inputStream.read(buffer);
                 if (n == -1) {
                     break;
                 }
-                result.append(buffer, 0, n);
+                byte[] temp = new byte[result.length + n];
+                System.arraycopy(result, 0, temp, 0, result.length);
+                System.arraycopy(buffer, 0, temp, result.length, n);
+                result = temp;
+                if (n != 4) {
+                    break;
+                }
+                Thread.sleep(1000);
             }
 
+            String resultString = new String(result);
             Pattern pattern = Pattern.compile("Student20\\s\\S+\\s\\S+");
-            Matcher matcher = pattern.matcher(result.toString());
+            Matcher matcher = pattern.matcher(resultString);
 
             int count = 0;
             while (matcher.find() && count < 10) {
@@ -37,7 +44,7 @@ public class TCP {
             }
 
             socket.close();
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
